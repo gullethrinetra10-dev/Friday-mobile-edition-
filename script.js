@@ -1,52 +1,17 @@
-// ===== 1. API KEY & 50+ GEMINI MODELS LIST =====
+// ===== 1. API KEY & WORKING GEMINI MODELS =====
 let API_KEY = localStorage.getItem('jarvis_key');
 if (!API_KEY) {
     API_KEY = prompt('Enter your Gemini API Key:');
     if (API_KEY) localStorage.setItem('jarvis_key', API_KEY.trim());
 }
 
-// Comprehensive list of 50+ Gemini models (Latest & Older versions combined for Auto-Selection)
+// Stable and active models list for smooth auto-selection
 const MODELS = [
-    // Gemini 2.5 & 2.0 Series (Latest)
     "gemini-2.5-flash",
-    "gemini-2.5-pro",
     "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
-    "gemini-2.0-pro",
-    "gemini-2.0-flash-thinking-exp",
-    
-    // Gemini 1.5 Series
     "gemini-1.5-flash",
-    "gemini-1.5-flash-latest",
-    "gemini-1.5-flash-8b",
     "gemini-1.5-pro",
-    "gemini-1.5-pro-latest",
-    
-    // Gemini 1.0 & Experimental Series
-    "gemini-1.0-pro",
-    "gemini-pro",
-    "gemini-pro-vision",
-    "gemini-flash-latest",
-    "gemini-exp-1206",
-    "gemini-exp-1121",
-    "gemini-exp-1114",
-    
-    // Additional variations / aliases for robust auto-selection fallback
-    "gemini-2.5-flash-latest",
-    "gemini-2.5-pro-latest",
-    "gemini-2.0-flash-001",
-    "gemini-2.0-pro-exp-02-05",
-    "gemini-1.5-flash-002",
-    "gemini-1.5-flash-001",
-    "gemini-1.5-pro-002",
-    "gemini-1.5-pro-001",
-    "gemini-1.5-flash-8b-001",
-    
-    // Additional fallback placeholders up to 50+ entries
-    "text-embedding-004",
-    "gemini-gemma-2b",
-    "gemini-gemma-7b",
-    "learnlm-1.5-pro-experimental"
+    "gemini-flash-latest"
 ];
 
 // ===== 2. MEMORY MANAGEMENT =====
@@ -87,6 +52,7 @@ function addMessage(text, who) {
 // Text-to-Speech (JARVIS speaking)
 function speak(text) {
     if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel(); // Stop previous speech if any
         const speech = new SpeechSynthesisUtterance(text);
         speech.rate = 1;
         speech.pitch = 1;
@@ -131,11 +97,11 @@ async function handleTools(text) {
     return null;
 }
 
-// ===== 4. AUTO-SELECT GEMINI API CALL WITH 50+ MODELS FALLBACK =====
+// ===== 4. GEMINI API CALL WITH AUTO-FALLBACK =====
 async function callGemini(promptText) {
     if (!API_KEY) throw new Error('Gemini API key is missing.');
     
-    // Check built-in tool actions first
+    // Check built-in tools first
     const toolResult = await handleTools(promptText);
     if (toolResult) return toolResult;
 
@@ -146,8 +112,7 @@ async function callGemini(promptText) {
     contents.push({ role: 'user', parts: [{ text: promptText }] });
 
     let lastError = null;
-    
-    // Loop through all models automatically to find the best available working model
+
     for (const model of MODELS) {
         try {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
@@ -158,23 +123,23 @@ async function callGemini(promptText) {
             });
 
             if (!response.ok) {
-                // If model doesn't exist or quota issues, skip and auto-select next model
-                continue;
+                const errJson = await response.json().catch(() => ({}));
+                console.warn(`Model ${model} failed:`, errJson);
+                continue; // Try next model
             }
 
             const data = await response.json();
             const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
             if (replyText) {
-                console.log(`Successfully connected using model: ${model}`);
                 return replyText;
             }
         } catch (err) {
             lastError = err;
-            // Automatically try the next model without stopping
+            console.warn(`Error with model ${model}:`, err);
         }
     }
     
-    throw lastError || new Error('All available Gemini models failed to respond.');
+    throw lastError || new Error('All models failed to respond. Please check your API key.');
 }
 
 // ===== 5. INTERACTION LOGIC =====
@@ -197,6 +162,7 @@ async function processUserPrompt(text) {
     } catch (error) {
         const errorMsg = 'Error: ' + error.message;
         chat.lastChild.innerText = 'J.A.R.V.I.S: ' + errorMsg;
+        speak("Sorry Boss, I encountered an error.");
     }
 }
 
@@ -222,7 +188,7 @@ if (SpeechRecognition) {
     micBtn.onclick = () => {
         try {
             recognition.start();
-            voiceStatus.innerText = '● LISTENING...';
+            if (voiceStatus) voiceStatus.innerText = '● LISTENING...';
         } catch (e) {
             console.log(e);
         }
@@ -230,13 +196,13 @@ if (SpeechRecognition) {
 
     recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
-        voiceStatus.innerText = '● READY';
+        if (voiceStatus) voiceStatus.innerText = '● READY';
         processUserPrompt(transcript);
     };
 
     recognition.onerror = () => {
-        voiceStatus.innerText = '● ERROR';
+        if (voiceStatus) voiceStatus.innerText = '● ERROR';
     };
 } else {
     micBtn.style.display = 'none';
-}
+        }
