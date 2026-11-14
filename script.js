@@ -5,7 +5,7 @@ const sendBtn = document.getElementById('send');
 const micBtn = document.getElementById('mic');
 const voiceStatus = document.getElementById('voice-status');
 
-// Text-to-Speech Function (JARVIS Speaking)
+// Text-to-Speech (JARVIS speaking out loud)
 function speak(text) {
     const speech = new SpeechSynthesisUtterance(text);
     speech.rate = 1;
@@ -22,7 +22,7 @@ function add(text, who) {
     chat.scrollTop = chat.scrollHeight;
 }
 
-// Handle User Input Response
+// Handle commands properly with distinct responses
 function handleCommand(command) {
     const cmd = command.toLowerCase().trim();
     if (!cmd) return;
@@ -33,9 +33,13 @@ function handleCommand(command) {
 
     setTimeout(() => {
         let reply = "Systems online. How may I assist you, Boss?";
-        
+
         if (cmd.includes('hello') || cmd.includes('hi')) {
             reply = "Hello Boss, all systems are fully operational.";
+        } else if (cmd.includes('what\'s up') || cmd.includes('whats up') || cmd.includes('how are you')) {
+            reply = "All systems are running smoothly, Boss. Ready for your command.";
+        } else if (cmd.includes('name')) {
+            reply = "I am J.A.R.V.I.S, your personal AI assistant.";
         } else if (cmd.includes('time')) {
             reply = "The current time is " + new Date().toLocaleTimeString();
         } else if (cmd.includes('open google')) {
@@ -48,7 +52,7 @@ function handleCommand(command) {
     }, 1000);
 }
 
-// Send Button Click Event
+// Send button click event
 sendBtn.onclick = () => {
     handleCommand(input.value);
 };
@@ -60,7 +64,7 @@ input.addEventListener('keypress', (e) => {
     }
 });
 
-// Voice Recognition (Speech-to-Text) Setup
+// Voice Recognition setup
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 if (SpeechRecognition) {
     const recognition = new SpeechRecognition();
@@ -89,6 +93,5 @@ if (SpeechRecognition) {
         voiceStatus.className = "off";
     };
 } else {
-    micBtn.style.display = 'none'; // Hide if browser doesn't support
-    console.warn("Speech Recognition not supported in this browser.");
+    micBtn.style.display = 'none';
 }
