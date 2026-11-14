@@ -1,10 +1,20 @@
-// ===== 1. API KEY & MODELS =====
+// ===== 1. API KEY & ALL GEMINI MODELS =====
 let API_KEY = localStorage.getItem('jarvis_key');
 if (!API_KEY) {
     API_KEY = prompt('Enter your Gemini API Key:');
     if (API_KEY) localStorage.setItem('jarvis_key', API_KEY.trim());
 }
-const MODELS = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-3.8-flash","gemini-3.8-flash-lite","gemini-4-hydrogen","gemini-4-argo","gemini-3.6","gemini-3.1-flash-lite","gemini-flash-latest"];
+
+// All major Gemini models added as fallbacks
+const MODELS = [
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-1.5-flash",
+    "gemini-1.5-pro",
+    "gemini-flash-latest",
+    "gemini-pro"
+];
 
 // ===== 2. MEMORY MANAGEMENT =====
 let MEMORY = [];
@@ -88,7 +98,7 @@ async function handleTools(text) {
     return null;
 }
 
-// ===== 4. GEMINI API CALL =====
+// ===== 4. GEMINI API CALL WITH MULTIPLE MODELS FALLBACK =====
 async function callGemini(promptText) {
     if (!API_KEY) throw new Error('Gemini API key is missing.');
     
@@ -122,9 +132,10 @@ async function callGemini(promptText) {
             if (replyText) return replyText;
         } catch (err) {
             lastError = err;
+            console.warn(`Model ${model} failed, trying next...`);
         }
     }
-    throw lastError || new Error('Failed to get response from Gemini API.');
+    throw lastError || new Error('Failed to get response from all Gemini API models.');
 }
 
 // ===== 5. INTERACTION LOGIC =====
@@ -190,5 +201,3 @@ if (SpeechRecognition) {
 } else {
     micBtn.style.display = 'none';
 }
-
-            
