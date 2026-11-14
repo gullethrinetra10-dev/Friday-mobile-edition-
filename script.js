@@ -1,116 +1,127 @@
-const chat = document.getElementById('chat');
-const input = document.getElementById('msg');
-const sendBtn = document.getElementById('send');
-const micBtn = document.getElementById('mic-btn');
-const clearBtn = document.getElementById('clear-btn');
-const camBtn = document.getElementById('cam-btn');
-const imgInput = document.getElementById('img-input');
-
-// Text-to-Speech (JARVIS speaking)
-function speak(text) {
-    const speech = new SpeechSynthesisUtterance(text);
-    speech.rate = 1;
-    speech.pitch = 1;
-    window.speechSynthesis.speak(speech);
+ // ===== 1. API KEY =====
+let API_KEY = localStorage.getItem('jarvis_key');
+if(!API_KEY){ API_KEY = prompt('Enter your Gemini API Key:'); if(API_KEY)
+localStorage.setItem('jarvis_key', API_KEY); }
+const MODELS = ["gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-flash-latest"];
+// ===== 2. MEMORY =====
+let MEMORY = [];
+try {
+const storedMemory = JSON.parse(localStorage.getItem('jarvis_memory') || '[]');
+if (Array.isArray(storedMemory)) {
+MEMORY = storedMemory.filter(m => m && (m.role === 'user' || m.role === 'model') && typeof
+m.text === 'string' && !(m.role === 'model' && /^(?:Your strong password:|ఇ 💻 Source Code: script.js (Part 2)
+async function handleTools(text){
+const t=text.toLowerCase();
+if(/^\s*(?:please\s+)?(?:open\s+youtube|youtube\s+open|youtube)(?:\s+please)?
+[.!?]*\s*$/i.test(text)){ window.open('https://youtube.com','_blank','noopener,noreferrer');
+return 'Opening YouTube, Boss.'; }
+if(/^\s*(?:please\s+)?(?:open\s+google|google\s+open|google)(?:\s+please)?
+[.!?]*\s*$/i.test(text)){ window.open('https://google.com','_blank','noopener,noreferrer');
+return 'Opening Google, Boss.'; }
+const urlCommand=text.match(/^\s*(?:open|visit|go to)\s+(https?:\/\/\S+)\s*$/i);
+if(urlCommand){
+try{
+const destination=new URL(urlCommand[1]);
+if(destination.protocol!=='https:'&&destination.protocol!=='http:') return 'Only http and
+https links can be opened.';
+window.open(destination.href,'_blank','noopener,noreferrer');
+return 'Opening '+destination.hostname+', Boss.';
+}catch(e){ return 'That link does not look valid.'; }
 }
-
-// Add message to chat
-function add(text, who) {
-    const d = document.createElement('div');
-    d.className = 'msg ' + who;
-    d.innerText = text;
-    chat.appendChild(d);
-    chat.scrollTop = chat.scrollHeight;
+if(/^\s*(?:google\s+search|search\s+(?:on\s+)?google)(?:\s+for)?\s*$/i.test(text)) return
+'Tell me what to search for on Google.';
+const googleSearch=text.match(/^\s*(?:google\s+search|search\s+(?:on\s+)?google)(?:\s+for)?
+\s+(.+?)\s*$/i);
+if(googleSearch){
+const query=googleSearch[1].trim();
+if(!query) return 'Tell me what to search for on Google.';
+window.open('https://www.google.com/search?
+q='+encodeURIComponent(query),'_blank','noopener,noreferrer');
+return 'Searching Google for '+query+', Boss.';
 }
-
-// Command Handler
-function handleCommand(command) {
-    const cmd = command.toLowerCase().trim();
-    if (!cmd) return;
-
-    add('YOU: ' + cmd, 'user');
-    input.value = '';
-    add('J.A.R.V.I.S: Processing...', 'ai');
-
-    setTimeout(() => {
-        let reply = "Systems operational. How may I assist you, Boss?";
-
-        if (cmd.includes('hello') || cmd.includes('hi')) {
-            reply = "Hello Boss, systems are online and ready.";
-        } else if (cmd.includes('how are you') || cmd.includes('whats up')) {
-            reply = "All diagnostics look green, Boss. Ready for action.";
-        } else if (cmd.includes('name')) {
-            reply = "I am J.A.R.V.I.S, your advanced personal AI assistant.";
-        } else if (cmd.includes('time')) {
-            reply = "The current time is " + new Date().toLocaleTimeString();
-        } else if (cmd.includes('open google')) {
-            reply = "Opening Google now, Boss.";
-            window.open('https://www.google.com', '_blank');
-        }
-
-        chat.lastChild.innerText = 'J.A.R.V.I.S: ' + reply;
-        speak(reply);
-    }, 1000);
+const playMatch=text.match(/^\s*play\s+(.+?)\s*$/i);
+const youtubeMatch=text.match(/^\s*youtube(?:\s+search)?(?:\s+for)?\s+(.+?)\s*$/i);
+const searchYoutubeMatch=text.match(/^\s*search\s+(?:on\s+)?youtube(?:\s+for)?\s+
+(.+?)\s*$/i);
+const videoQuery=(playMatch||youtubeMatch||searchYoutubeMatch)?.[1]?.trim();
+if(videoQuery){
+window.open('https://www.youtube.com/results?
+search_query='+encodeURIComponent(videoQuery),'_blank','noopener,noreferrer');
+return 'Searching YouTube for '+videoQuery+', Boss.';
 }
-
-// Send Button Event
-sendBtn.onclick = () => {
-    handleCommand(input.value);
-};
-
-// Enter Key Support
-input.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        handleCommand(input.value);
-    }
+const searchMatch=text.match(/^\s*(?:search|look up)\s+(?:for\s+)?(.+?)\s*$/i);
+if(searchMatch){
+const query=searchMatch[1].trim();
+if(!query) return 'Tell me what to search for.';
+try{
+const url='https://en.wikipedia.org/w/api.php?
+action=query&list=search&srlimit=1&srsearch='+encodeURIComponent(query)+'&format=json&origin=*'
+;
+const data=await fetchToolJson(url);
+const result=data?.query?.search?.[0];
+if(!result) return 'I could not find that, Boss.';
+const
+snippet=String(result.snippet||'').replace(/<[^>]*>/g,'').replace(/"/g,'"').replace(/�?
+39;/g,"'").replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>');
+return 'Wikipedia summary: '+result.title+(snippet?'. '+snippet:'');
+}catch(e){ return 'Search error, Boss.'; }
+}
+GROWTH OS TELUGU — J.A.R.V.I.S Setup Guide Page 4 💻 Source Code: Agent Engine (Part 3)
+// ===== 3.5. AGENT MODE ENGINE =====
+const AGENT_TOOLS = Object.freeze({
+time: async () => handleTools('current time'),
+weather: async () => handleTools('weather'),
+news: async () => handleTools('news'),
+crypto: async () => handleTools('bitcoin')
 });
-
-// Clear Memory Button Event
-clearBtn.onclick = () => {
-    chat.innerHTML = '';
-    speak("Memory cleared, Boss.");
-};
-
-// Camera Button Event
-camBtn.onclick = () => {
-    imgInput.click();
-};
-
-imgInput.onchange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-        add('YOU: [Uploaded an image for analysis]', 'user');
-        setTimeout(() => {
-            let reply = "Image received, Boss. Visual analysis module is active.";
-            add('J.A.R.V.I.S: ' + reply, 'ai');
-            speak(reply);
-        }, 1000);
-    }
-};
-
-// Voice Recognition (Speech-to-Text) Setup
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-if (SpeechRecognition) {
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.lang = 'en-US';
-
-    micBtn.onclick = () => {
-        try {
-            recognition.start();
-            add('J.A.R.V.I.S: Listening...', 'ai');
-        } catch (e) {
-            console.log(e);
-        }
-    };
-
-    recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        handleCommand(transcript);
-    };
-
-    recognition.onerror = () => {
-        add('J.A.R.V.I.S: Voice input error.', 'ai');
-    };
-} else {
-    micBtn.style.display = 'none';
+const AGENT_TOOL_NAMES = Object.freeze({ time: 'time', weather: 'weather', news: 'news',
+crypto: 'crypto' });
+function isAgentModeRequest(text=''){
+const value=String(text||'');
+if(/\b(?:agent(?:\s+mode)?|run\s+(?:the\s+)?agent|use\s+(?:the\s+)?agent)\b/i.test(value))
+return true;
+if(/\b(?:briefing|research|analy[sz]e|analysis)\b/i.test(value)) return true;
+return /\bplan\b/i.test(value)&&/\b(?:time|weather|news|crypto|bitcoin|btc)\b/i.test(value);
 }
+function parseAgentToolPlan(responseText){
+const text=String(responseText||'').trim().replace(/^```(?:json)?
+\s*/i,'').replace(/\s*```$/,'');
+const start=text.indexOf('['), end=text.lastIndexOf(']');
+if(start<0||end<start) throw new Error('Agent plan format incorrect.');
+let parsed = JSON.parse(text.slice(start,end+1));
+const allowed=new Set(Object.keys(AGENT_TOOLS));
+return [...new Set(parsed.filter(item=>typeof
+item==='string').map(item=>item.trim().toLowerCase()).filter(item=>allowed.has(item)))];
+}
+async function runAgent(goal){
+add('J.A.R.V.I.S: Agent mode active.','ai');
+add('J.A.R.V.I.S: Goal analyze chesthunna...','ai');
+const planPrompt='Select tools from ["time","weather","news","crypto"]. Goal:
+'+JSON.stringify(String(goal));
+let toolsToRun;
+try{
+toolsToRun=parseAgentToolPlan(await callGeminiRaw(planPrompt));
+}catch(error){
+toolsToRun=fallbackAgentToolPlan(goal);
+}
+const results={};
+for(let i=0;i<toolsToRun.length;i++){
+const tool=toolsToRun[i];
+add('J.A.R.V.I.S: ['+(i+1)+'/'+toolsToRun.length+'] '+AGENT_TOOL_NAMES[tool]+' tool run
+chesthunna...','ai');
+try{ results[tool]=await AGENT_TOOLS[tool](); }catch(e){ results[tool]='Tool error'; }
+}
+add('J.A.R.V.I.S: Results combine chesthunna...','ai');
+const summaryPrompt='Goal: '+JSON.stringify(String(goal))+'. Tool results:
+'+JSON.stringify(results)+'. Give concise Telugu/English summary.';
+return await callGemini(summaryPrompt);
+}
+// ===== 4. GEMINI BRAIN =====
+async function callGemini(p){
+if(!API_KEY) throw new Error('Gemini API key is missing.');
+const contents = MEMORY.slice(-12).map(m=>({role:m.role, parts:[{text:m.text}]}));
+contents.push({role:'user', parts:[{text:p}]});
+for(const m of MODELS){
+try{
+
+            
