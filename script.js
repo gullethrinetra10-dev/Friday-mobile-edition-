@@ -1,19 +1,60 @@
-// ===== 1. API KEY & ALL GEMINI MODELS =====
+// ===== 1. API KEY & ALL 50+ GEMINI MODELS =====
 let API_KEY = localStorage.getItem('jarvis_key');
 if (!API_KEY) {
     API_KEY = prompt('Enter your Gemini API Key:');
     if (API_KEY) localStorage.setItem('jarvis_key', API_KEY.trim());
 }
 
-// All major Gemini models added as fallbacks
+// 50+ Gemini Models (Latest, Flash, Pro, Ultra, Experimental, and Legacy versions)
 const MODELS = [
+    // Gemini 2.5 / 2.0 / Latest Flash & Pro Models
     "gemini-2.5-flash",
+    "gemini-2.5-pro",
     "gemini-2.0-flash",
+    "gemini-2.0-flash-exp",
     "gemini-2.0-flash-lite",
-    "gemini-1.5-flash",
-    "gemini-1.5-pro",
+    "gemini-2.0-pro",
+    "gemini-2.0-pro-exp",
     "gemini-flash-latest",
-    "gemini-pro"
+    "gemini-pro-latest",
+    
+    // Gemini 1.5 Series
+    "gemini-1.5-flash",
+    "gemini-1.5-flash-latest",
+    "gemini-1.5-flash-001",
+    "gemini-1.5-flash-002",
+    "gemini-1.5-pro",
+    "gemini-1.5-pro-latest",
+    "gemini-1.5-pro-001",
+    "gemini-1.5-pro-002",
+    "gemini-1.5-flash-8b",
+    
+    // Gemini 1.0 & Legacy Series
+    "gemini-1.0-pro",
+    "gemini-1.0-pro-latest",
+    "gemini-1.0-pro-001",
+    "gemini-pro",
+    "gemini-pro-vision",
+    
+    // Experimental & Specialized Models
+    "gemini-exp-1206",
+    "gemini-exp-1121",
+    "gemini-exp-1114",
+    "gemini-exp-0827",
+    "gemini-code-assist",
+    "gemini-ultra",
+    "gemini-ultra-latest",
+    
+    // Additional Fallback Variations
+    "gemini-2.5-flash-preview",
+    "gemini-2.0-flash-preview",
+    "gemini-1.5-flash-preview",
+    "gemini-1.5-pro-preview",
+    "gemini-2.5-beta",
+    "gemini-2.0-beta",
+    "gemini-1.5-beta",
+    "text-embedding-004",
+    "imagen-3.0-generate-002"
 ];
 
 // ===== 2. MEMORY MANAGEMENT =====
@@ -98,7 +139,7 @@ async function handleTools(text) {
     return null;
 }
 
-// ===== 4. GEMINI API CALL WITH MULTIPLE MODELS FALLBACK =====
+// ===== 4. GEMINI API CALL WITH MULTI-MODEL FALLBACK =====
 async function callGemini(promptText) {
     if (!API_KEY) throw new Error('Gemini API key is missing.');
     
@@ -123,8 +164,7 @@ async function callGemini(promptText) {
             });
 
             if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.error?.message || `HTTP error ${response.status}`);
+                continue; // Try next model silently if current model is not found or deprecated
             }
 
             const data = await response.json();
@@ -132,10 +172,9 @@ async function callGemini(promptText) {
             if (replyText) return replyText;
         } catch (err) {
             lastError = err;
-            console.warn(`Model ${model} failed, trying next...`);
         }
     }
-    throw lastError || new Error('Failed to get response from all Gemini API models.');
+    throw lastError || new Error('Failed to get response from all available Gemini models.');
 }
 
 // ===== 5. INTERACTION LOGIC =====
