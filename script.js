@@ -7,8 +7,8 @@ if (!API_KEY) {
 
 // Stable and active models list for smooth auto-selection
 const MODELS = [
-    "gemini-3.1-fash-lite"
-    
+    "gemini-3.1-fash-lite","gemini-3.8","gemini-3.7"
+    "gemini-2.5"   
 ];
 
 // ===== 2. MEMORY MANAGEMENT =====
