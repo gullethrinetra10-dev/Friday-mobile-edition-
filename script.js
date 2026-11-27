@@ -2,8 +2,27 @@
 "use strict";
 
 // ========================================
-// 1. GEMINI API CONFIGURATION
+// 1. GEMINI API KEY - NEW KEY SETUP
 // ========================================
+
+// Change this version when you want to reset your API key again.
+const KEY_VERSION = "2";
+
+if (localStorage.getItem("jarvis_key_version") !== KEY_VERSION) {
+    localStorage.removeItem("jarvis_key");
+    localStorage.setItem("jarvis_key_version", KEY_VERSION);
+}
+
+let API_KEY = localStorage.getItem("jarvis_key") || "";
+
+if (!API_KEY) {
+    const enteredKey = prompt("Enter your NEW Gemini API Key:");
+
+    if (enteredKey && enteredKey.trim()) {
+        API_KEY = enteredKey.trim();
+        localStorage.setItem("jarvis_key", API_KEY);
+    }
+}
 
 const MODELS = [
     "gemini-3.1-flash-lite",
@@ -11,17 +30,6 @@ const MODELS = [
     "gemini-3.5-flash-lite",
     "gemini-flash-latest"
 ];
-
-let API_KEY = localStorage.getItem("jarvis_key") || "";
-
-if (!API_KEY) {
-    API_KEY = prompt("Enter your Gemini API Key:");
-
-    if (API_KEY) {
-        API_KEY = API_KEY.trim();
-        localStorage.setItem("jarvis_key", API_KEY);
-    }
-}
 
 // ========================================
 // 2. HTML ELEMENTS
@@ -69,7 +77,6 @@ function saveMemory() {
 
 function clearMemory() {
     MEMORY = [];
-
     localStorage.removeItem("jarvis_memory");
 
     if (chat) {
@@ -87,12 +94,10 @@ function add(text, type = "ai") {
     if (!chat) return;
 
     const message = document.createElement("div");
-
     message.className = "message " + type;
     message.textContent = text;
 
     chat.appendChild(message);
-
     chat.scrollTop = chat.scrollHeight;
 }
 
@@ -104,29 +109,24 @@ function setVoiceStatus(text, active = false) {
 }
 
 // ========================================
-// 5. TEXT TO SPEECH
+// 5. VOICE OUTPUT
 // ========================================
 
 function speak(text) {
-    if (!("speechSynthesis" in window)) {
-        add("Voice output is not supported in this browser.", "ai");
-        return;
-    }
+    if (!("speechSynthesis" in window)) return;
 
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
-
     utterance.lang = "en-IN";
     utterance.rate = 1;
     utterance.pitch = 1;
-    utterance.volume = 1;
 
     window.speechSynthesis.speak(utterance);
 }
 
 // ========================================
-// 6. API REQUEST HELPER
+// 6. FETCH HELPER
 // ========================================
 
 async function fetchJson(url) {
@@ -144,43 +144,29 @@ async function fetchJson(url) {
 // ========================================
 
 async function handleTools(text) {
-
     const command = text.toLowerCase().trim();
-
-    // TIME
 
     if (command === "time" || command === "current time") {
         return "Current time is " +
             new Date().toLocaleTimeString() + ", Boss.";
     }
 
-    // DATE
-
     if (command === "date" || command === "today") {
         return "Today's date is " +
             new Date().toLocaleDateString() + ", Boss.";
     }
 
-    // WEATHER
-
     if (command === "weather") {
         try {
-            const response = await fetch(
-                "https://wttr.in/?format=3"
-            );
+            const response = await fetch("https://wttr.in/?format=3");
 
-            if (!response.ok) {
-                throw new Error("Weather unavailable");
-            }
+            if (!response.ok) throw new Error("Weather unavailable");
 
             return "Weather: " + await response.text();
-
         } catch (error) {
             return "Unable to fetch weather, Boss.";
         }
     }
-
-    // NEWS
 
     if (command === "news") {
         try {
@@ -188,21 +174,12 @@ async function handleTools(text) {
                 "https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=5"
             );
 
-            const headlines = data.hits
-                .map(item => item.title)
-                .filter(Boolean)
-                .join("\n");
-
-            return headlines
-                ? "Top News:\n" + headlines
-                : "No news available.";
-
+            return "Top News:\n" +
+                data.hits.map(item => item.title).join("\n");
         } catch (error) {
             return "Unable to fetch news, Boss.";
         }
     }
-
-    // BITCOIN
 
     if (command === "bitcoin" || command === "crypto") {
         try {
@@ -210,29 +187,21 @@ async function handleTools(text) {
                 "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
             );
 
-            return "Bitcoin price: $" +
-                data.bitcoin.usd + " USD";
-
+            return "Bitcoin price: $" + data.bitcoin.usd + " USD";
         } catch (error) {
             return "Unable to fetch Bitcoin price.";
         }
     }
-
-    // OPEN YOUTUBE
 
     if (/^(open\s+)?youtube$/i.test(command)) {
         window.open("https://youtube.com", "_blank");
         return "Opening YouTube, Boss.";
     }
 
-    // OPEN GOOGLE
-
     if (/^(open\s+)?google$/i.test(command)) {
         window.open("https://google.com", "_blank");
         return "Opening Google, Boss.";
     }
-
-    // GOOGLE SEARCH
 
     const googleMatch = text.match(
         /^(?:google\s+search|search\s+(?:on\s+)?google)(?:\s+for)?\s+(.+)$/i
@@ -250,8 +219,6 @@ async function handleTools(text) {
         return "Searching Google for " + query;
     }
 
-    // YOUTUBE SEARCH
-
     const youtubeMatch = text.match(
         /^(?:play|youtube(?:\s+search)?|search\s+(?:on\s+)?youtube)(?:\s+for)?\s+(.+)$/i
     );
@@ -268,8 +235,6 @@ async function handleTools(text) {
         return "Searching YouTube for " + query;
     }
 
-    // OPEN URL
-
     const urlMatch = text.match(
         /^(?:open|visit|go to)\s+(https?:\/\/\S+)$/i
     );
@@ -278,20 +243,12 @@ async function handleTools(text) {
         try {
             const url = new URL(urlMatch[1]);
 
-            if (!["http:", "https:"].includes(url.protocol)) {
-                return "Invalid URL.";
-            }
-
             window.open(url.href, "_blank");
-
             return "Opening " + url.hostname;
-
         } catch (error) {
             return "Invalid URL.";
         }
     }
-
-    // WIKIPEDIA SEARCH
 
     const searchMatch = text.match(
         /^(?:search|look up)\s+(.+)$/i
@@ -308,12 +265,9 @@ async function handleTools(text) {
                 "&format=json&origin=*";
 
             const data = await fetchJson(url);
-
             const result = data?.query?.search?.[0];
 
-            if (!result) {
-                return "No Wikipedia result found.";
-            }
+            if (!result) return "No Wikipedia result found.";
 
             const snippet = result.snippet
                 .replace(/<[^>]*>/g, "")
@@ -322,7 +276,6 @@ async function handleTools(text) {
                 .replace(/&#039;/g, "'");
 
             return result.title + ": " + snippet;
-
         } catch (error) {
             return "Wikipedia search failed.";
         }
@@ -336,7 +289,6 @@ async function handleTools(text) {
 // ========================================
 
 async function callGeminiRaw(promptText, history = null) {
-
     if (!API_KEY) {
         throw new Error("Gemini API key is missing.");
     }
@@ -351,7 +303,6 @@ async function callGeminiRaw(promptText, history = null) {
     let lastError = null;
 
     for (const model of MODELS) {
-
         try {
             const response = await fetch(
                 "https://generativelanguage.googleapis.com/v1beta/models/" +
@@ -360,11 +311,9 @@ async function callGeminiRaw(promptText, history = null) {
                 encodeURIComponent(API_KEY),
                 {
                     method: "POST",
-
                     headers: {
                         "Content-Type": "application/json"
                     },
-
                     body: JSON.stringify({
                         contents: contents
                     })
@@ -380,25 +329,16 @@ async function callGeminiRaw(promptText, history = null) {
                 );
             }
 
-            const reply =
-                data?.candidates?.[0]?.content?.parts
-                    ?.map(part => part.text || "")
-                    .join("\n");
+            const reply = data?.candidates?.[0]?.content?.parts
+                ?.map(part => part.text || "")
+                .join("\n");
 
-            if (reply) {
-                return reply;
-            }
+            if (reply) return reply;
 
             throw new Error("Gemini returned an empty response.");
-
         } catch (error) {
             lastError = error;
-
-            console.error(
-                "Gemini model failed:",
-                model,
-                error.message
-            );
+            console.error("Model failed:", model, error.message);
         }
     }
 
@@ -406,7 +346,6 @@ async function callGeminiRaw(promptText, history = null) {
 }
 
 async function callGemini(promptText) {
-
     const history = MEMORY.slice(-12).map(item => ({
         role: item.role,
         parts: [{ text: item.text }]
@@ -417,10 +356,7 @@ async function callGemini(promptText) {
         parts: [{ text: promptText }]
     });
 
-    const reply = await callGeminiRaw(
-        promptText,
-        history
-    );
+    const reply = await callGeminiRaw(promptText, history);
 
     MEMORY.push(
         { role: "user", text: promptText },
@@ -428,7 +364,6 @@ async function callGemini(promptText) {
     );
 
     MEMORY = MEMORY.slice(-30);
-
     saveMemory();
 
     return reply;
@@ -450,7 +385,6 @@ function isAgentModeRequest(text) {
 }
 
 function fallbackAgentToolPlan(goal) {
-
     const g = goal.toLowerCase();
     const plan = [];
 
@@ -470,18 +404,16 @@ function fallbackAgentToolPlan(goal) {
 }
 
 async function runAgent(goal) {
-
     add("Agent Mode activated, Boss.", "ai");
-
-    const planPrompt =
-        'Return ONLY a JSON array using these tools: ' +
-        '["time","weather","news","crypto"]. Goal: ' +
-        JSON.stringify(goal);
 
     let toolsToRun;
 
     try {
-        const response = await callGeminiRaw(planPrompt);
+        const response = await callGeminiRaw(
+            'Return ONLY a JSON array using these tools: ' +
+            '["time","weather","news","crypto"]. Goal: ' +
+            JSON.stringify(goal)
+        );
 
         const cleaned = response
             .replace(/^```(?:json)?\s*/i, "")
@@ -495,18 +427,18 @@ async function runAgent(goal) {
             throw new Error("Invalid agent plan");
         }
 
-        const parsed = JSON.parse(
-            cleaned.slice(start, end + 1)
-        );
+        const parsed = JSON.parse(cleaned.slice(start, end + 1));
 
         toolsToRun = [
             ...new Set(
                 parsed.filter(tool =>
-                    Object.hasOwn(AGENT_TOOLS, tool)
+                    Object.prototype.hasOwnProperty.call(
+                        AGENT_TOOLS,
+                        tool
+                    )
                 )
             )
         ];
-
     } catch (error) {
         toolsToRun = fallbackAgentToolPlan(goal);
     }
@@ -514,7 +446,6 @@ async function runAgent(goal) {
     const results = {};
 
     for (const tool of toolsToRun) {
-
         add("Running " + tool + " tool...", "ai");
 
         try {
@@ -538,59 +469,43 @@ async function runAgent(goal) {
 let isProcessing = false;
 
 async function sendMessage() {
-
     if (isProcessing) return;
 
     const text = msg.value.trim();
-
     if (!text) return;
 
     if (!API_KEY) {
-        add("Please enter a valid Gemini API key.", "ai");
+        add("Gemini API key is missing. Reload and enter your key.", "ai");
         return;
     }
 
     isProcessing = true;
 
-    sendBtn.disabled = true;
+    if (sendBtn) sendBtn.disabled = true;
 
     add("You: " + text, "user");
-
     msg.value = "";
 
     try {
-
         let reply = await handleTools(text);
 
         if (reply === null) {
-
-            if (isAgentModeRequest(text)) {
-                reply = await runAgent(text);
-            } else {
-                reply = await callGemini(text);
-            }
+            reply = isAgentModeRequest(text)
+                ? await runAgent(text)
+                : await callGemini(text);
         }
 
         add("J.A.R.V.I.S: " + reply, "ai");
-
         speak(reply);
-
     } catch (error) {
-
         console.error(error);
-
-        add(
-            "Error: " + error.message,
-            "ai"
-        );
-
+        add("Error: " + error.message, "ai");
     } finally {
-
         isProcessing = false;
 
-        sendBtn.disabled = false;
+        if (sendBtn) sendBtn.disabled = false;
 
-        msg.focus();
+        if (msg) msg.focus();
     }
 }
 
@@ -606,7 +521,6 @@ let recognition = null;
 let isListening = false;
 
 if (SpeechRecognition) {
-
     recognition = new SpeechRecognition();
 
     recognition.lang = "en-IN";
@@ -614,77 +528,48 @@ if (SpeechRecognition) {
     recognition.interimResults = false;
 
     recognition.onstart = function () {
-
         isListening = true;
-
         setVoiceStatus("LISTENING", true);
-
         add("Listening, Boss...", "ai");
     };
 
     recognition.onresult = function (event) {
-
         const transcript =
             event.results[event.results.length - 1][0].transcript;
 
         msg.value = transcript;
-
         sendMessage();
     };
 
     recognition.onerror = function (event) {
-
         isListening = false;
-
         setVoiceStatus("VOICE ERROR", false);
-
-        add(
-            "Voice error: " + event.error,
-            "ai"
-        );
+        add("Voice error: " + event.error, "ai");
     };
 
     recognition.onend = function () {
-
         isListening = false;
-
         setVoiceStatus("READY", true);
     };
-
 } else {
-
     setVoiceStatus("NOT SUPPORTED", false);
 }
 
 function activateMic() {
-
     if (!recognition) {
-
-        add(
-            "Speech recognition is not supported. Try Chrome.",
-            "ai"
-        );
-
+        add("Speech recognition is not supported. Try Chrome.", "ai");
         return;
     }
 
     if (isListening) {
-
         recognition.stop();
-
         return;
     }
 
     try {
-
         recognition.start();
-
     } catch (error) {
-
-        add(
-            "Microphone error: " + error.message,
-            "ai"
-        );
+        add("Microphone error: " + error.message, "ai");
     }
 }
 
@@ -705,13 +590,9 @@ if (clearBtn) {
 }
 
 if (msg) {
-
     msg.addEventListener("keydown", function (event) {
-
         if (event.key === "Enter") {
-
             event.preventDefault();
-
             sendMessage();
         }
     });
@@ -722,7 +603,6 @@ if (msg) {
 // ========================================
 
 add("J.A.R.V.I.S initialized, Boss.", "ai");
-
 add("Gemini Brain ready for commands.", "ai");
 
 if (recognition) {
@@ -730,4 +610,3 @@ if (recognition) {
 } else {
     setVoiceStatus("NOT SUPPORTED", false);
 }
-
